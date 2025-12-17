@@ -2,7 +2,7 @@
 
 RED-OPS is a high-security, browser-based encryption suite designed for secure file exchange using a hybrid RSA-AES architecture. It operates entirely client-side via the Web Crypto API, ensuring that your data and private keys never leave your machine.
 
-
+![RED-OPS Terminal Interface](Screenshot/screenshot.png)
 
 ## Technical Specifications
 
