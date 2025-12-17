@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>RED-OPS // ULTIMATE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --primary: #ff0055;
+            --accent: #5e001f;
+            --bg: #050505;
+            --panel: rgba(20, 0, 5, 0.96);
+            --border: 1px solid var(--primary);
+            --dim: #441122;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; background-color: var(--bg); color: var(--primary);
+            font-family: 'Share Tech Mono', monospace; height: 100vh;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        .grid-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                linear-gradient(rgba(255, 0, 85, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 85, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px; z-index: -1; pointer-events: none;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 30px; border-bottom: 2px solid var(--primary); background: rgba(20,0,5,0.9);
+            box-shadow: 0 0 20px rgba(255,0,85,0.2);
+        }
+        .logo { font-size: 1.4rem; letter-spacing: 3px; font-weight: bold; text-shadow: 0 0 5px var(--primary); }
+        
+        .main-layout {
+            display: grid; grid-template-columns: 320px 1fr 320px; height: 100%;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--accent); padding: 20px; display: flex; flex-direction: column; gap: 20px;
+            background: rgba(10,0,0,0.4);
+        }
+        
+        .content {
+            padding: 30px; display: flex; flex-direction: column; gap: 20px; position: relative;
+        }
+
+        /* CONTACTS LIST */
+        .contact-list {
+            flex: 1; overflow-y: auto; border: 1px solid var(--accent); padding: 5px;
+            background: rgba(0,0,0,0.3);
+        }
+        .contact-item {
+            padding: 10px; border-bottom: 1px solid var(--accent); cursor: pointer; display: flex; justify-content: space-between;
+            transition: 0.2s;
+        }
+        .contact-item:hover { background: rgba(255, 0, 85, 0.15); padding-left: 15px; }
+        .contact-item.active { background: var(--primary); color: #000; font-weight: bold; }
+        .del-btn { color: var(--primary); font-weight: bold; cursor: pointer; opacity: 0.7; }
+
+        /* INPUTS */
+        textarea, input[type="text"] {
+            width: 100%; background: #000; border: 1px solid var(--accent); color: var(--primary);
+            padding: 10px; font-family: inherit; font-size: 0.8rem; resize: none; transition: 0.3s;
+        }
+        textarea:focus, input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px var(--accent); }
+
+        button {
+            background: var(--accent); border: 1px solid var(--primary); color: #fff;
+            padding: 10px; cursor: pointer; font-family: inherit; text-transform: uppercase;
+            transition: 0.2s; font-weight: bold; margin-top: 5px;
+        }
+        button:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+        button.danger { border-color: red; color: red; background: rgba(50,0,0,0.5); }
+        button.danger:hover { background: red; color: #fff; }
+        button.outline { background: transparent; color: var(--primary); }
+
+        /* DROP ZONE */
+        .drop-zone {
+            flex: 1; border: 2px dashed var(--accent); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer; transition: 0.3s;
+            background: rgba(20,0,5,0.3);
+        }
+        .drop-zone:hover { border-color: var(--primary); background: rgba(255,0,85,0.05); box-shadow: inset 0 0 20px var(--accent); }
+
+        /* TABS */
+        .tabs { display: flex; border-bottom: 2px solid var(--accent); }
+        .tab { flex: 1; padding: 15px; cursor: pointer; text-align: center; color: var(--dim); transition: 0.3s; }
+        .tab:hover { color: var(--primary); }
+        .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: rgba(255,0,85,0.1); }
+
+        .view { display: none; height: 100%; flex-direction: column; gap: 15px; }
+        .view.active { display: flex; }
+
+        /* TOAST NOTIFICATIONS */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 999;
+        }
+        .toast {
+            background: #080002; border: 1px solid var(--primary); color: var(--primary); padding: 15px 25px;
+            box-shadow: 0 0 30px rgba(255,0,85,0.2); animation: slideIn 0.3s ease; max-width: 350px;
+            border-left: 5px solid var(--primary);
+        }
+        .toast.error { border-color: #ffaa00; color: #ffaa00; border-left-color: #ffaa00; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* MODALS */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000; backdrop-filter: blur(5px);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            width: 800px; max-width: 90%; background: #110205; border: 1px solid var(--primary);
+            padding: 40px; box-shadow: 0 0 50px rgba(255,0,85,0.3); max-height: 90vh; overflow-y: auto;
+            position: relative;
+        }
+        .close-btn { position: absolute; top: 10px; right: 10px; border: none; font-size: 1.5rem; background: none; color: var(--primary); }
+        
+        .modal h2 { margin-top: 0; border-bottom: 1px dashed var(--primary); padding-bottom: 10px; color: #fff; }
+        .modal h3 { color: var(--primary); margin-top: 20px; }
+        .modal p, .modal li { color: #ccc; line-height: 1.6; font-size: 0.95rem; }
+        .code-block { background: #000; padding: 2px 5px; border: 1px solid #333; color: #fff; font-family: monospace; }
+        .warning-text { color: red; border: 1px solid red; padding: 10px; background: rgba(50,0,0,0.3); margin-bottom: 10px;}
+
+        h3 { margin: 0 0 10px 0; border-bottom: 1px dashed var(--primary); padding-bottom: 5px; font-size: 0.9rem; color: #fff; text-shadow: 0 0 5px var(--primary); }
+        .small { font-size: 0.7rem; color: #aaa; margin-bottom: 5px; display: block; text-transform: uppercase; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="grid-bg"></div>
+    <div id="toast-container"></div>
+
+    <div class="top-bar">
+        <div class="logo">RED-OPS // ULTIMATE</div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div id="identity-status" style="font-size: 0.8rem; color: #888;">[ NO IDENTITY LOADED ]</div>
+            <button onclick="toggleModal('helpModal')" style="padding: 5px 15px; width: auto;">❓ MANUAL (EN)</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        
+        <div class="sidebar">
+            <div>
+                <h3>ADDRESS BOOK</h3>
+                <div class="contact-list" id="contactList"></div>
+            </div>
+            <div>
+                <span class="small">>> ADD NEW CONTACT</span>
+                <input type="text" id="newContactName" placeholder="CODENAME (e.g. Ghost)">
+                <textarea id="newContactKey" rows="3" placeholder="PASTE PUBLIC KEY STRING..."></textarea>
+                <button onclick="addContact()" style="width:100%; margin-top:5px;">+ SAVE TO DATABASE</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="tabs">
+                <div class="tab active" onclick="setView('encrypt')">🔒 SECURE SEND</div>
+                <div class="tab" onclick="setView('decrypt')">🔓 SECURE READ</div>
+            </div>
+
+            <div id="view-encrypt" class="view active">
+                <div>
+                    <span class="small">>> TARGET RECIPIENT</span>
+                    <input type="text" id="selectedRecipient" readonly placeholder="<< SELECT TARGET FROM LIST" 
+                           style="background: #110505; border: 1px solid var(--primary); cursor: not-allowed; color: #fff;">
+                    <input type="hidden" id="recipientPubKey">
+                </div>
+
+                <div class="drop-zone" onclick="document.getElementById('encInput').click()">
+                    <span style="font-size: 3rem; text-shadow: 0 0 15px var(--primary);">📤</span>
+                    <span id="encFileLabel">DROP DATA / CLICK TO UPLOAD</span>
+                    <input type="file" id="encInput" hidden onchange="updFile('encInput','encFileLabel')">
+                </div>
+
+                <button onclick="processEncryption()" style="padding: 20px; font-size: 1.2rem; letter-spacing: 2px;">INITIATE ENCRYPTION</button>
+            </div>
+
+            <div id="view-decrypt" class="view">
+                <div class="drop-zone" onclick="document.getElementById('decInput').click()">
+                    <span style="font-size: 3rem; text-shadow: 0 0 15px var(--primary);">📥</span>
+                    <span id="decFileLabel">LOAD ENCRYPTED (.OMEGA) FILE</span>
+                    <input type="file" id="decInput" hidden onchange="updFile('decInput','decFileLabel')">
+                </div>
+
+                <div style="background: rgba(20,0,5,0.8); padding: 15px; border: 1px solid var(--accent);">
+                    <span class="small">>> ORIGIN VERIFICATION:</span>
+                    <div id="sigStatus" style="font-size: 1.1rem; color: #666; margin-top: 5px;">WAITING FOR INPUT STREAM...</div>
+                </div>
+
+                <button onclick="processDecryption()" style="padding: 20px; font-size: 1.2rem; letter-spacing: 2px;">DECRYPT & VERIFY</button>
+            </div>
+        </div>
+
+        <div class="sidebar" style="border-right: none; border-left: 1px solid var(--accent);">
+            <h3>MY IDENTITY (PUBLIC)</h3>
+            <textarea id="myPubKey" readonly rows="8" placeholder="YOUR PUBLIC ID"></textarea>
+            <div style="display:flex; gap:5px;">
+                <button onclick="copyMyKey()" style="flex:1">COPY</button>
+                <button onclick="downloadKey('pub')" style="flex:1">DOWNLOAD</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3>PRIVATE KEY CONTROL</h3>
+                <button onclick="showPrivateKey()" class="outline" style="width:100%; border: 1px dashed var(--primary);">👁 REVEAL / EXPORT PRIVATE KEY</button>
+            </div>
+            
+            <div style="margin-top: auto;">
+                <h3>SYSTEM SETTINGS</h3>
+                <button onclick="generateIdentity()" class="danger">⚠ GENERATE NEW KEYS</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('helpModal')">X</button>
+            <h2>RED-OPS // OPERATIONAL MANUAL</h2>
+            
+            <h3>1. FIRST STEPS</h3>
+            <p>Upon first launch, click <b>GENERATE NEW KEYS</b>. This creates your 4096-bit RSA Identity.</p>
+            <ul>
+                <li><b>Public Key:</b> Safe to share. Send this to friends so they can encrypt files for you.</li>
+                <li><b>Private Key:</b> TOP SECRET. Never share this. It stays in your browser. You can export it for backup using the "REVEAL" button.</li>
+            </ul>
+
+            <h3>2. SENDING A SECRET (Encrypt)</h3>
+            <ol>
+                <li>Add your friend to the <b>ADDRESS BOOK</b> (Left Panel) using their Public Key.</li>
+                <li>Click on their name to select them as TARGET.</li>
+                <li>Go to <b>SECURE SEND</b> tab.</li>
+                <li>Upload your file.</li>
+                <li>Click <b>INITIATE ENCRYPTION</b>.</li>
+                <li>Send the resulting <span class="code-block">.omega</span> file to your friend.</li>
+            </ol>
+
+            <h3>3. RECEIVING A SECRET (Decrypt)</h3>
+            <ol>
+                <li>Go to <b>SECURE READ</b> tab.</li>
+                <li>Upload the <span class="code-block">.omega</span> file you received.</li>
+                <li>Click <b>DECRYPT</b>.</li>
+                <li>The system will verify if the sender is in your contacts and show "VERIFIED SENDER".</li>
+            </ol>
+            <br>
+            <button onclick="toggleModal('helpModal')" style="width:100%">ACKNOWLEDGE</button>
+        </div>
+    </div>
+
+    <div id="privKeyModal" class="modal">
+        <div class="modal-content" style="border-color: red; box-shadow: 0 0 50px rgba(255,0,0,0.2);">
+            <button class="close-btn" onclick="toggleModal('privKeyModal')">X</button>
+            <h2 style="color: red; border-color: red;">⚠ RESTRICTED ACCESS // PRIVATE KEY</h2>
+            
+            <div class="warning-text">
+                WARNING: ANYONE WITH THIS KEY CAN READ YOUR MESSAGES.<br>
+                DO NOT SHARE. DO NOT STREAM. KEEP SAFE.
+            </div>
+
+            <textarea id="privKeyExportArea" rows="15" readonly style="color: #ff5555; border-color: #ff5555;"></textarea>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="copyPrivKey()" style="flex:1; border-color: red; color: red;">COPY TO CLIPBOARD</button>
+                <button onclick="downloadKey('priv')" style="flex:1; border-color: red; color: red;">DOWNLOAD .PEM FILE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE ---
+        let myKeyPair = null;
+        let contacts = JSON.parse(localStorage.getItem('redops_contacts') || '{}');
+
+        // --- INIT ---
+        window.onload = async () => {
+            await loadIdentity();
+            renderContacts();
+        };
+
+        // --- IDENTITY LOGIC ---
+        async function loadIdentity() {
+            const stored = localStorage.getItem('redops_identity');
+            if (stored) {
+                const jwk = JSON.parse(stored);
+                // Important: Key must be extractable to export it later
+                const pub = await window.crypto.subtle.importKey("jwk", jwk.pub, {name: "RSA-OAEP", hash: "SHA-256"}, true, ["encrypt"]);
+                const priv = await window.crypto.subtle.importKey("jwk", jwk.priv, {name: "RSA-OAEP", hash: "SHA-256"}, true, ["decrypt"]);
+                myKeyPair = { publicKey: pub, privateKey: priv };
+                updateIdentityUI(pub);
+            }
+        }
+
+        async function generateIdentity() {
+            if(myKeyPair && !confirm("WARNING: OVERWRITE EXISTING KEYS? OLD FILES WILL BE UNREADABLE.")) return;
+            
+            notify("GENERATING RSA-4096 KEYS...");
+            myKeyPair = await window.crypto.subtle.generateKey(
+                { name: "RSA-OAEP", modulusLength: 4096, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true, ["encrypt", "decrypt"]
+            );
+
+            const pubJWK = await window.crypto.subtle.exportKey("jwk", myKeyPair.publicKey);
+            const privJWK = await window.crypto.subtle.exportKey("jwk", myKeyPair.privateKey);
+            
+            localStorage.setItem('redops_identity', JSON.stringify({ pub: pubJWK, priv: privJWK }));
+            updateIdentityUI(myKeyPair.publicKey);
+            notify(">> NEW IDENTITY ESTABLISHED");
+        }
+
+        async function updateIdentityUI(pubKey) {
+            const spki = await window.crypto.subtle.exportKey("spki", pubKey);
+            document.getElementById('myPubKey').value = toPem(spki, "PUBLIC KEY");
+            const status = document.getElementById('identity-status');
+            status.innerText = "[ IDENTITY: ONLINE / SECURE ]";
+            status.style.color = "#ff0055";
+            status.style.textShadow = "0 0 5px #ff0055";
+        }
+
+        // --- EXPORT LOGIC ---
+        async function showPrivateKey() {
+            if(!myKeyPair) return notify("NO IDENTITY GENERATED", "error");
+            
+            const pkcs8 = await window.crypto.subtle.exportKey("pkcs8", myKeyPair.privateKey);
+            document.getElementById('privKeyExportArea').value = toPem(pkcs8, "PRIVATE KEY");
+            toggleModal('privKeyModal');
+        }
+
+        function downloadKey(type) {
+            if(!myKeyPair) return notify("NO KEYS TO DOWNLOAD", "error");
+            let content, filename;
+            if (type === 'pub') {
+                content = document.getElementById('myPubKey').value;
+                filename = "public_identity.pem";
+            } else {
+                content = document.getElementById('privKeyExportArea').value;
+                filename = "SECRET_private_identity.pem";
+            }
+            if(!content) return notify("KEY NOT RENDERED", "error");
+            downloadBlob(new Blob([content], {type: 'text/plain'}), filename);
+        }
+
+        // --- CONTACTS ---
+        function renderContacts() {
+            const list = document.getElementById('contactList');
+            list.innerHTML = "";
+            Object.keys(contacts).forEach(name => {
+                const div = document.createElement('div');
+                div.className = "contact-item";
+                div.innerHTML = `<span>${name}</span> <span class="del-btn" onclick="deleteContact('${name}', event)">[X]</span>`;
+                div.onclick = () => selectContact(name);
+                list.appendChild(div);
+            });
+        }
+
+        function addContact() {
+            const name = document.getElementById('newContactName').value.trim();
+            const key = document.getElementById('newContactKey').value.trim();
+            if(!name || !key) return notify("MISSING DATA", "error");
+            
+            contacts[name] = key;
+            localStorage.setItem('redops_contacts', JSON.stringify(contacts));
+            renderContacts();
+            document.getElementById('newContactName').value = "";
+            document.getElementById('newContactKey').value = "";
+            notify(`>> DATABASE UPDATED: ${name}`);
+        }
+
+        function deleteContact(name, e) {
+            e.stopPropagation();
+            if(confirm(`REMOVE ${name}?`)) {
+                delete contacts[name];
+                localStorage.setItem('redops_contacts', JSON.stringify(contacts));
+                renderContacts();
+            }
+        }
+
+        function selectContact(name) {
+            document.getElementById('selectedRecipient').value = name;
+            document.getElementById('recipientPubKey').value = contacts[name];
+            document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+            notify(`>> TARGET LOCKED: ${name}`);
+        }
+
+        // --- CRYPTO LOGIC (Hybrid) ---
+        async function processEncryption() {
+            if(!myKeyPair) return notify("IDENTITY REQUIRED", "error");
+            const recipientPem = document.getElementById('recipientPubKey').value;
+            const fileInput = document.getElementById('encInput');
+            
+            if(!recipientPem) return notify("NO TARGET SELECTED", "error");
+            if(!fileInput.files.length) return notify("NO FILE DATA", "error");
+
+            notify(">> ENCRYPTING STREAM...");
+            try {
+                const recipientKey = await importKey(recipientPem, ["encrypt"]);
+                const file = fileInput.files[0];
+                const fileBuffer = await file.arrayBuffer();
+
+                const meta = JSON.stringify({ 
+                    n: file.name, 
+                    t: file.type,
+                    sender: document.getElementById('myPubKey').value 
+                });
+                const metaBytes = new TextEncoder().encode(meta);
+
+                const aesKey = await window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                
+                const payload = new Uint8Array(4 + metaBytes.byteLength + fileBuffer.byteLength);
+                new DataView(payload.buffer).setUint32(0, metaBytes.byteLength);
+                payload.set(metaBytes, 4);
+                payload.set(new Uint8Array(fileBuffer), 4 + metaBytes.byteLength);
+
+                const encryptedContent = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, aesKey, payload);
+                const rawAes = await window.crypto.subtle.exportKey("raw", aesKey);
+                const encryptedKey = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, recipientKey, rawAes);
+
+                const finalBlobParts = [u32(encryptedKey.byteLength), encryptedKey, iv, encryptedContent];
+                downloadBlob(new Blob(finalBlobParts), file.name + ".omega");
+                notify(">> ENCRYPTION COMPLETE");
+            } catch(e) { console.error(e); notify("CRITICAL ERROR", "error"); }
+        }
+
+        async function processDecryption() {
+            if(!myKeyPair) return notify("IDENTITY REQUIRED", "error");
+            const fileInput = document.getElementById('decInput');
+            if(!fileInput.files.length) return notify("NO FILE DATA", "error");
+
+            notify(">> DECRYPTING STREAM...");
+            try {
+                const buffer = await fileInput.files[0].arrayBuffer();
+                const view = new DataView(buffer);
+                let ptr = 0;
+
+                const keyLen = view.getUint32(ptr); ptr += 4;
+                const encKey = buffer.slice(ptr, ptr + keyLen); ptr += keyLen;
+                const iv = buffer.slice(ptr, ptr + 12); ptr += 12;
+                const content = buffer.slice(ptr);
+
+                const rawAes = await window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, myKeyPair.privateKey, encKey);
+                const aesKey = await window.crypto.subtle.importKey("raw", rawAes, { name: "AES-GCM" }, false, ["decrypt"]);
+                const plainPayload = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, aesKey, content);
+                
+                const payloadView = new DataView(plainPayload);
+                const metaLen = payloadView.getUint32(0);
+                const metaBytes = plainPayload.slice(4, 4 + metaLen);
+                const meta = JSON.parse(new TextDecoder().decode(metaBytes));
+                const fileData = plainPayload.slice(4 + metaLen);
+
+                const sigDiv = document.getElementById('sigStatus');
+                if(meta.sender) {
+                    const senderName = Object.keys(contacts).find(name => contacts[name].replace(/\s/g,'') === meta.sender.replace(/\s/g,''));
+                    sigDiv.innerHTML = senderName 
+                        ? `<span style="color:#00ff41; text-shadow: 0 0 10px #00ff41;">[ ✔ VERIFIED SENDER: ${senderName} ]</span>`
+                        : `<span style="color:#ffaa00">[ ⚠ UNKNOWN SIGNATURE DETECTED ]</span>`;
+                } else {
+                    sigDiv.innerHTML = "[ ⚠ NO SIGNATURE ]";
+                }
+
+                downloadBlob(new Blob([fileData], {type: meta.t}), "OPEN_" + meta.n);
+                notify(">> DECRYPTION SUCCESSFUL");
+            } catch(e) { console.error(e); notify("DECRYPTION FAILED. ACCESS DENIED.", "error"); }
+        }
+
+        // --- HELPERS ---
+        function setView(v) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+            document.querySelector(`.tab[onclick="setView('${v}')"]`).classList.add('active');
+            document.getElementById(`view-${v}`).classList.add('active');
+        }
+
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function updFile(id, labelId) {
+            document.getElementById(labelId).innerText = ">> READY: " + document.getElementById(id).files[0].name;
+            document.getElementById(labelId).style.color = "#fff";
+        }
+
+        function notify(msg, type="info") {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerText = msg;
+            document.getElementById('toast-container').appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+
+        function u32(n) { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n); return b; }
+        
+        function toPem(buf, type) {
+            const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+            return `-----BEGIN ${type}-----\n${b64.match(/.{1,64}/g).join('\n')}\n-----END ${type}-----`;
+        }
+        
+        async function importKey(pem, usage) {
+            const b64 = pem.replace(/-----(BEGIN|END)[\w\s]+-----/g, "").replace(/\s/g, "");
+            const bin = atob(b64);
+            const buf = new Uint8Array(bin.length);
+            for(let i=0; i<bin.length; i++) buf[i] = bin.charCodeAt(i);
+            return await window.crypto.subtle.importKey("spki", buf, { name: "RSA-OAEP", hash: "SHA-256" }, false, usage);
+        }
+
+        function copyMyKey() {
+            navigator.clipboard.writeText(document.getElementById('myPubKey').value);
+            notify(">> PUBLIC ID COPIED");
+        }
+
+        function copyPrivKey() {
+            navigator.clipboard.writeText(document.getElementById('privKeyExportArea').value);
+            notify(">> PRIVATE KEY COPIED (WARNING!)");
+        }
+
+        function downloadBlob(blob, name) {
+            const u = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = u; a.download = name; a.click();
+            URL.revokeObjectURL(u);
+        }
+    </script>
+</body>
+</html>
